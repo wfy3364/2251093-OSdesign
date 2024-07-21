@@ -2,22 +2,26 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-void redirect(int num, int pip[]) //输入或输出重定向
+int main(int argc, char* argv[])
 {
-    close(num);
-    dup(pip[num]);
-    close(pip[0]);
-    close(pip[1]);
-}
-
-void drop(int prime) //筛除非质数
-{
-    int num;
-    while (read(0, &num, sizeof(num)))
-    {
-        if (num % prime != 0)
-        {
-            write(1, &num, sizeof(num));
-        }
+    int fd1[2];
+    int fd2[2];
+    pipe(fd1);
+    pipe(fd2);
+    char buf[10];
+    if (fork() == 0) { //child
+        close(fd2[0]);
+        close(fd1[1]);
+        read(fd1[0], buf, 1);
+        printf("%d: received ping\n", getpid());
+        write(fd2[1], "p", 1);
     }
+    else { //parent
+        close(fd1[0]);
+        close(fd2[1]);
+        write(fd1[1], "p", 1);
+        read(fd2[0], buf, 1);
+        printf("%d: received pong\n", getpid());
+    }
+    exit(0);
 }
